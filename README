@@ -1,0 +1,1 @@
+if ever there is a strnge JSOP_IMACOP build issue - make sure ur "imacros.c.out" file is generated in the current directory. Since the build system is whacky (not my fault!), I checked in this file, so u can get ahead by doing "git checkout imacros.c.out"
