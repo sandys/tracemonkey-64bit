@@ -37,11 +37,11 @@
 # 
 # ***** END LICENSE BLOCK *****
 
-ifdef JS_DIST
+#ifdef JS_DIST
 DIST = $(JS_DIST)
-else
-DIST = $(DEPTH)/../../dist
-endif
+#else
+#DIST = $(DEPTH)/../../dist
+#endif
 
 # Set os+release dependent make variables
 OS_ARCH         := $(subst /,_,$(shell uname -s | sed /\ /s//_/))
