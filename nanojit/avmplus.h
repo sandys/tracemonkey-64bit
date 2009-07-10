@@ -186,7 +186,7 @@ namespace avmplus {
     class GCHeap
     {
     public:
-        int32_t kNativePageSize;
+        size_t kNativePageSize;
     
         GCHeap()
         {
