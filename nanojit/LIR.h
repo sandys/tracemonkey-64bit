@@ -325,32 +325,57 @@ namespace nanojit
 
     };
 
-    struct CallInfo
-	{
-		uintptr_t	_address;
-        uint32_t	_argtypes:18;	// 9 2-bit fields indicating arg type, by ARGSIZE above (including ret type): a1 a2 a3 a4 a5 ret
-        uint8_t		_cse:1;			// true if no side effects
-        uint8_t		_fold:1;		// true if no side effects
+struct CallInfo
+    {
+        uintptr_t   _address;
+        uint32_t    _argtypes:27;   // 9 3-bit fields indicating arg type, by ARGSIZE above (including ret type): a1 a2 a3 a4 a5 ret
+        uint8_t     _cse:1;         // true if no side effects
+        uint8_t     _fold:1;        // true if no side effects
         AbiKind     _abi:3;
-		verbose_only ( const char* _name; )
-		
-		uint32_t FASTCALL _count_args(uint32_t mask) const;
+        verbose_only ( const char* _name; )
+        
+        uint32_t FASTCALL _count_args(uint32_t mask) const;
         uint32_t get_sizes(ArgSize*) const;
 
-        inline bool isInterface() const {
-            return _address == 2 || _address == 3; /* hack! */
-        }
         inline bool isIndirect() const {
             return _address < 256;
         }
-		inline uint32_t FASTCALL count_args() const {
-            return _count_args(_ARGSIZE_MASK_ANY) + isIndirect();
+        inline uint32_t FASTCALL count_args() const {
+            return _count_args(ARGSIZE_MASK);
         }
-		inline uint32_t FASTCALL count_iargs() const {
-            return _count_args(_ARGSIZE_MASK_INT);
+        inline uint32_t FASTCALL count_iargs() const {
+            return _count_args(ARGSIZE_MASK_INT);
         }
-		// fargs = args - iargs
-	};
+        // fargs = args - iargs
+    };
+
+
+// sss   struct CallInfo
+//	{
+//		uintptr_t	_address;
+//        uint32_t	_argtypes:18;	// 9 2-bit fields indicating arg type, by ARGSIZE above (including ret type): a1 a2 a3 a4 a5 ret
+//        uint8_t		_cse:1;			// true if no side effects
+//        uint8_t		_fold:1;		// true if no side effects
+//        AbiKind     _abi:3;
+//		verbose_only ( const char* _name; )
+//		
+//		uint32_t FASTCALL _count_args(uint32_t mask) const;
+//        uint32_t get_sizes(ArgSize*) const;
+//
+//        inline bool isInterface() const {
+//            return _address == 2 || _address == 3; /* hack! */
+//        }
+//        inline bool isIndirect() const {
+//            return _address < 256;
+//        }
+//		inline uint32_t FASTCALL count_args() const {
+//            return _count_args(_ARGSIZE_MASK_ANY) + isIndirect();
+//        }
+//		inline uint32_t FASTCALL count_iargs() const {
+//            return _count_args(_ARGSIZE_MASK_INT);
+//        }
+//		// fargs = args - iargs
+//	};
 
 	/*
 	 * Record for extra data used to compile switches as jump tables.
@@ -591,10 +616,29 @@ namespace nanojit
 	};
 	typedef LIns*		LInsp;
 
-	typedef struct { LIns* v; LIns i; } LirFarIns;
-	typedef struct { int32_t v; LIns i; } LirImm32Ins;
-	typedef struct { int32_t v[2]; LIns i; } LirImm64Ins;
-	typedef struct { const CallInfo* ci; LIns i; } LirCallIns;
+    #ifdef ANDROID
+    typedef struct { LIns* v; LIns i; } LirFarIns __attribute__ ((aligned (4)));
+    typedef struct { int32_t v; LIns i; } LirImm32Ins __attribute__ ((aligned (4)));
+    typedef struct { int32_t v[2]; LIns i; } LirImm64Ins __attribute__ ((aligned (4)));
+    typedef struct { const CallInfo* ci; LIns i; } LirCallIns __attribute__ ((aligned (4)));
+#else
+#if defined __SUNPRO_C || defined __SUNPRO_CC
+    #pragma pack(4)
+#else
+    #pragma pack(push, 4)
+#endif
+
+    typedef struct { LIns* v; LIns i; } LirFarIns;
+    typedef struct { int32_t v; LIns i; } LirImm32Ins;
+    typedef struct { int32_t v[2]; LIns i; } LirImm64Ins;
+    typedef struct { const CallInfo* ci; LIns i; } LirCallIns;
+
+#if defined __SUNPRO_C || defined __SUNPRO_CC
+    #pragma pack(0)
+#else
+    #pragma pack(pop)
+#endif
+#endif // ANDROID
 	
 	static const uint32_t LIR_FAR_SLOTS	  = sizeof(LirFarIns)/sizeof(LIns); 
 	static const uint32_t LIR_CALL_SLOTS = sizeof(LirCallIns)/sizeof(LIns); 
