@@ -1193,7 +1193,9 @@ namespace nanojit
         // ret
         max_stk_used = 0;
         emit(X64_ret);
-        emitr(X64_popr, RBP);
+        emitr(X64_popr, FP);
+        //sss changed to FP for consistency 
+        //emitr(X64_popr, RBP);
         MR(RSP, RBP);
         return _nIns;
     }
@@ -1267,6 +1269,7 @@ namespace nanojit
         NIns *pc = _nIns;
         Page *p = (Page*)pageTop(pc-1);
         NIns *top = (NIns*) &p->code[0];
+        verbose_only(outputf("underrunProtect top %p:", top);)
         //sss NIns *top = _inExit ? this->exitStart : this->codeStart;
 
     #if PEDANTIC
@@ -1282,7 +1285,7 @@ namespace nanojit
             if (pc - bytes - br_size < top) {
                 // really do need a page break
                 verbose_only(if (_verbose) outputf("newpage %p:", pc);)
-                pageAlloc();
+			    _nIns = pageAlloc(_inExit);
             }
             // now emit the jump, but make sure we won't need another page break. 
             // we're pedantic, but not *that* pedantic.
@@ -1292,8 +1295,12 @@ namespace nanojit
         }
     #else
         if (pc - bytes < top) {
+            // We are done with the current page.  Tell Valgrind that new code
+            // has been generated.
+            VALGRIND_DISCARD_TRANSLATIONS(pageTop(p), NJ_PAGE_SIZE);
             verbose_only(if (_verbose) outputf("newpage %p:", pc);)
-            pageAlloc();
+			_nIns = pageAlloc(_inExit);
+            //pageAlloc();
             // this jump will call underrunProtect again, but since we're on a new
             // page, nothing will happen.
             JMP(pc);
@@ -1307,11 +1314,11 @@ namespace nanojit
 
     void Assembler::nativePageSetup() {
         if (!_nIns) {
-            pageAlloc();
+			_nIns = pageAlloc();
             IF_PEDANTIC( pedanticTop = _nIns; )
         }
         if (!_nExitIns) {
-            pageAlloc(true);
+			_nIns = pageAlloc(true);
         }
     }
 
