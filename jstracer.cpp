@@ -1406,6 +1406,7 @@ TraceRecorder::TraceRecorder(JSContext* cx, VMSideExit* _anchor, Fragment* _frag
     if (!nanojit::AvmCore::config.tree_opt || fragment->root == fragment)
         lirbuf->state = addName(lir->insParam(0, 0), "state");
 
+   // printf("offsets = %d %d %d",(int)offsetof(InterpState, sp), offsetof(InterpState, rp), offsetof(InterpState, cx));
     lirbuf->sp = addName(lir->insLoad(LIR_ldp, lirbuf->state, (int)offsetof(InterpState, sp)), "sp");
     lirbuf->rp = addName(lir->insLoad(LIR_ldp, lirbuf->state, offsetof(InterpState, rp)), "rp");
     cx_ins = addName(lir->insLoad(LIR_ldp, lirbuf->state, offsetof(InterpState, cx)), "cx");
@@ -2089,7 +2090,8 @@ skip:
 }
 
 /* Emit load instructions onto the trace that read the initial stack state. */
-JS_REQUIRES_STACK void
+
+ JS_REQUIRES_STACK vvoid
 TraceRecorder::import(LIns* base, ptrdiff_t offset, jsval* p, uint8 t,
                       const char *prefix, uintN index, JSStackFrame *fp)
 {
@@ -2242,6 +2244,7 @@ TraceRecorder::isValidSlot(JSScope* scope, JSScopeProperty* sprop)
 JS_REQUIRES_STACK bool
 TraceRecorder::lazilyImportGlobalSlot(unsigned slot)
 {
+    printf("slot = %u\n", slot);
     if (slot != uint16(slot)) /* we use a table of 16-bit ints, bail out if that's not enough */
         return false;
     /*
@@ -2261,6 +2264,7 @@ TraceRecorder::lazilyImportGlobalSlot(unsigned slot)
     if ((type == JSVAL_INT) && oracle.isGlobalSlotUndemotable(cx, slot))
         type = JSVAL_DOUBLE;
     treeInfo->typeMap.add(type);
+    printf("calc = %d", sizeof(struct InterpState) + slot*sizeof(double));
     import(lirbuf->state, sizeof(struct InterpState) + slot*sizeof(double),
            vp, type, "global", index, NULL);
     specializeTreesToMissingGlobals(cx, treeInfo);
@@ -7829,7 +7833,8 @@ TraceRecorder::callNative(uintN argc, JSOp mode)
         args[0] = invokevp_ins;
         args[1] = lir->insImm(argc);
         args[2] = cx_ins;
-        types = ARGSIZE_LO | ARGSIZE_LO << 2 | ARGSIZE_LO << 4 | ARGSIZE_LO << 6;
+        types = ARGSIZE_LO | ARGSIZE_LO << 3 | ARGSIZE_LO << 6 | ARGSIZE_LO << 9;
+        //sss types = ARGSIZE_LO | ARGSIZE_LO << 2 | ARGSIZE_LO << 4 | ARGSIZE_LO << 6;
     } else {
         native_rval_ins = lir->ins2i(LIR_piadd, invokevp_ins, int32_t((vplen - 1) * sizeof(jsval)));
         args[0] = native_rval_ins;
@@ -7837,8 +7842,10 @@ TraceRecorder::callNative(uintN argc, JSOp mode)
         args[2] = lir->insImm(argc);
         args[3] = this_ins;
         args[4] = cx_ins;
-        types = ARGSIZE_LO | ARGSIZE_LO << 2 | ARGSIZE_LO << 4 | ARGSIZE_LO << 6 |
-                ARGSIZE_LO << 8 | ARGSIZE_LO << 10;
+        types = ARGSIZE_LO | ARGSIZE_LO << 3 | ARGSIZE_LO << 6 | ARGSIZE_LO << 9 |
+                ARGSIZE_LO << 12 | ARGSIZE_LO << 15;
+//        types = ARGSIZE_LO | ARGSIZE_LO << 2 | ARGSIZE_LO << 4 | ARGSIZE_LO << 6 |
+//                ARGSIZE_LO << 8 | ARGSIZE_LO << 10;
     }
 
     // Generate CallInfo and a JSTraceableNative structure on the fly.  Do not
