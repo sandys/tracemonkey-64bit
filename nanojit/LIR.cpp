@@ -49,25 +49,17 @@ namespace nanojit
     using namespace avmplus;
 	#ifdef FEATURE_NANOJIT
 
-	const uint8_t operandCount[] = {
-    /* 0 */		/*trace*/0, /*nearskip*/0, /*skip*/0, /*neartramp*/0, /*tramp*/0, 2, 2, 2, 2, /*iaddp*/2, 
-	/* 10 */	/*iparam*/0, 2, 2, /*alloc*/0, 2, /*ret*/1, /*live*/1, 2, /*call*/0, /*loop*/0,
-	/* 20 */	/*x*/0, 0, 1, 1, /*label*/0, 2, 2, 2, 2, 2,
-	/* 30 */	2, 2, /*short*/0, /*int*/0, 2, 2, /*neg*/1, 2, 2, 2,
-#if defined NANOJIT_64BIT
-	/* 40 */	/*callh*/0, 2, 2, 2, /*not*/1, 2, 2, 2, /*xt*/1, /*xf*/1,
-#else
-	/* 40 */	/*callh*/1, 2, 2, 2, /*not*/1, 2, 2, 2, /*xt*/1, /*xf*/1,
-#endif
-	/* 50 */	/*qlo*/1, /*qhi*/1, 2, /*ov*/1, /*cs*/1, 2, 2, 2, 2, 2,
-	/* 60 */	2, 2, 2, 2, 2, /*file*/1, /*line*/1, 2, 2, 2,
-	/* 70 */	2, 2, 2, /*qaddp*/2, /*qparam*/0, 2, 2, /*qalloc*/0, 2, /*fret*/1,
-	/* 80 */	2, /*qcall*/0, /*fcall*/0, 2, 2, 2, 2, 2, 2, 2,
-	/* 90 */	/*i2q*/1, /*u2q*/1, 2, 2, 2, 2, 2, /*quad*/0, 2, 2,
-	/* 100 */	/*fneg*/1, 2, 2, 2, 2, 2, 2, 2, 2, 2,
-	/* 110 */	2, 2, /*i2f*/1, /*u2f*/1, 2, 2, 2, 2, 2, /*qeq*/2,
-	/* 120 */	/*qlt*/2, /*qgt*/2, /*qle*/2, /*qge*/2, /*qult*/2, /*qugt*/2, /*qule*/2, /*quge*/2,
-        
+
+
+const uint8_t operandCount[] = {
+#define OPDEF(op, number, operands) \
+        operands,
+#define OPDEF64(op, number, operands) \
+        operands,
+#include "LIRopcode.tbl"
+#undef OPDEF
+#undef OPDEF64
+        0
 	};
 
 	// LIR verbose specific
@@ -2072,7 +2064,7 @@ namespace nanojit
 		char sbuf[200];
 		char *s = sbuf;
 		LOpcode op = i->opcode();
-//        printf("ERROR opcode = %d ci = %x\n", op, i->callInfo());
+        printf("DEBUG opcode = %d ci = %x\n", op, i->callInfo());
 //        if(i->isCall())
 //            printf("ci args = %d\n", i->callInfo()->count_args());
 		switch(op)
@@ -2320,6 +2312,7 @@ namespace nanojit
 	LIns* CseFilter::ins1(LOpcode v, LInsp a)
 	{
 		if (isCse(v)) {
+            printf("opcode = %d", v);
 			NanoAssert(operandCount[v]==1);
 			uint32_t k;
 			LInsp found = exprs.find1(v, a, k);

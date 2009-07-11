@@ -58,7 +58,7 @@
 12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678
  */
 
-/*    op    val name        operands */
+/*    op    valname        operands */
 
 /* special operations (must be 0..N) */
 OPDEF(start,     0, 0)
@@ -74,6 +74,8 @@ OPDEF(unused4,   8, 2)
 
 /* non-pure operations */
 OPDEF(addp,      9, 2)
+//sss 
+OPDEF(iaddp,      LIR_addp, 2)
 OPDEF(param,    10, 0)
 OPDEF(st,       11, 2) // 32-bit store
 OPDEF(ld,       12, 2) // 32-bit load
@@ -83,6 +85,8 @@ OPDEF(ret,      15, 1)
 OPDEF(live,     16, 1) // extend live range of reference
 OPDEF(calli,    17, 0) // indirect call
 OPDEF(call,     18, 0) // subroutine call returning a 32-bit value
+OPDEF(icall,     LIR_call, 0) // subroutine call returning a 32-bit value
+OPDEF(qcall,     LIR_calli, 0) // subroutine call returning a 32-bit value
 
 /* guards */
 OPDEF(loop,     19, 0) // loop fragment
@@ -183,7 +187,8 @@ OPDEF64(unused5_64,   5, 2)
 OPDEF64(unused6_64,   6, 2)
 OPDEF64(unused7_64,   7, 2)
 OPDEF64(unused8_64,   8, 2)
-OPDEF64(unused9_64,   9, 2)
+OPDEF64(qaddp,   LIR_addp, 2)
+//OPDEF64(unused9_64,   9, 2)
 OPDEF64(unused10_64, 10, 2)
 
 OPDEF64(stq, LIR_st, 2) // quad store
@@ -206,8 +211,10 @@ OPDEF64(unused22_64, 22, 2)
 OPDEF64(unused23_64, 23, 2)
 OPDEF64(qiand,       24, 2)
 OPDEF64(qiadd,       25, 2)
-OPDEF64(unused26_64, 26, 2)
-OPDEF64(unused27_64, 27, 2)
+OPDEF64(i2q, 26, 1)
+//OPDEF64(unused26_64, 26, 2)
+OPDEF64(u2q, 27, 1)
+//sss OPDEF64(unused27_64, 27, 2)
 OPDEF64(unused28_64, 28, 2)
 OPDEF64(unused29_64, 29, 2)
 OPDEF64(unused30_64, 30, 2)
@@ -232,21 +239,41 @@ OPDEF64(u2f,   43,      1) // convert an unsigned integer to a float
 OPDEF64(qior,  44,      2)
 OPDEF64(qilsh, LIR_lsh, 2)
 
-OPDEF64(unused46_64, 46, 2)
-OPDEF64(unused47_64, 47, 2)
-OPDEF64(unused48_64, 48, 2)
+OPDEF64(qirsh, LIR_rsh, 2)
+// OPDEF64(unused46_64, 46, 2)
+OPDEF64(qursh, LIR_ush, 2)
+//sss OPDEF64(unused47_64, 47, 2)
+OPDEF64(qxor, 48, 2) //sss this should have been 43
+//OPDEF64(unused48_64, 48, 2)
 OPDEF64(unused49_64, 49, 2)
 OPDEF64(unused50_64, 50, 2)
 OPDEF64(unused51_64, 51, 2)
 OPDEF64(unused52_64, 52, 2)
 OPDEF64(unused53_64, 53, 2)
 OPDEF64(unused54_64, 54, 2)
-OPDEF64(unused55_64, 55, 2)
-OPDEF64(unused56_64, 56, 2)
-OPDEF64(unused57_64, 57, 2)
-OPDEF64(unused58_64, 58, 2)
-OPDEF64(unused59_64, 59, 2)
-OPDEF64(unused60_64, 60, 2)
-OPDEF64(unused61_64, 61, 2)
-OPDEF64(unused62_64, 62, 2)
-OPDEF64(unused63_64, 63, 2)
+OPDEF64(qeq, LIR_eq, 2)
+//OPDEF64(unused55_64, 55, 2)
+OPDEF64(qlt,LIR_lt, 2)
+//sss OPDEF64(unused56_64, 56, 2)
+OPDEF64(qgt, LIR_gt, 2)
+//OPDEF64(unused57_64, 57, 2)
+OPDEF64(qle, LIR_le, 2)
+//sss OPDEF64(unused58_64, 58, 2)
+OPDEF64(qge, LIR_ge, 2)
+//OPDEF64(unused59_64, 59, 2)
+OPDEF64(qult, LIR_ult, 2)
+//OPDEF64(unused60_64, 60, 2)
+OPDEF64(qugt, LIR_ugt, 2)
+//OPDEF64(unused61_64, 61, 2)
+OPDEF64(qule, LIR_ule, 2)
+//OPDEF64(unused62_64, 62, 2)
+OPDEF64(quge, LIR_uge, 2)
+//OPDEF64(unused63_64, 63, 2)
+
+//sss conditionals
+OPDEF(piadd,PTR_SIZE(LIR_add,    LIR_qiadd), 2 )
+OPDEF(ldp, PTR_SIZE(LIR_ld,     LIR_ldq), 0 )
+OPDEF(piand,  PTR_SIZE(LIR_and,    LIR_qiand) ,2)
+OPDEF(pior,PTR_SIZE(LIR_or,     LIR_qior), 2)
+OPDEF(pilsh,PTR_SIZE(LIR_lsh,    LIR_qilsh) ,2 )
+OPDEF(pcall, PTR_SIZE(LIR_icall,  LIR_qcall), 0)
