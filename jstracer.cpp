@@ -2091,7 +2091,7 @@ skip:
 
 /* Emit load instructions onto the trace that read the initial stack state. */
 
- JS_REQUIRES_STACK vvoid
+JS_REQUIRES_STACK void
 TraceRecorder::import(LIns* base, ptrdiff_t offset, jsval* p, uint8 t,
                       const char *prefix, uintN index, JSStackFrame *fp)
 {
