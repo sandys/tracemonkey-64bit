@@ -50,6 +50,8 @@ namespace nanojit
 		free = 0;
 		used = 0;
 		memset(active, 0, (LastReg+1) * sizeof(LIns*));
+        //sss
+		memset(usepri, 0, (LastReg+1) * sizeof(LIns*));
 	}
 
 	bool RegAlloc::isFree(Register r) 
