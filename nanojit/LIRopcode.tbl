@@ -74,8 +74,6 @@ OPDEF(unused4,   8, 2)
 
 /* non-pure operations */
 OPDEF(addp,      9, 2)
-//sss 
-OPDEF(iaddp,      LIR_addp, 2)
 OPDEF(param,    10, 0)
 OPDEF(st,       11, 2) // 32-bit store
 OPDEF(ld,       12, 2) // 32-bit load
@@ -85,8 +83,6 @@ OPDEF(ret,      15, 1)
 OPDEF(live,     16, 1) // extend live range of reference
 OPDEF(calli,    17, 0) // indirect call
 OPDEF(call,     18, 0) // subroutine call returning a 32-bit value
-OPDEF(icall,     LIR_call, 0) // subroutine call returning a 32-bit value
-OPDEF(qcall,     LIR_calli, 0) // subroutine call returning a 32-bit value
 
 /* guards */
 OPDEF(loop,     19, 0) // loop fragment
@@ -270,10 +266,15 @@ OPDEF64(qule, LIR_ule, 2)
 OPDEF64(quge, LIR_uge, 2)
 //OPDEF64(unused63_64, 63, 2)
 
+//sss I had to put these at the end to take care of offsets 
+OPDEF(icall,     LIR_call, 0) // subroutine call returning a 32-bit value
+OPDEF(qcall,     LIR_calli, 0) // subroutine call returning a 32-bit value
+
 //sss conditionals
 OPDEF(piadd,PTR_SIZE(LIR_add,    LIR_qiadd), 2 )
-OPDEF(ldp, PTR_SIZE(LIR_ld,     LIR_ldq), 0 )
+OPDEF(ldp, PTR_SIZE(LIR_ld,     LIR_ldq), 2 )
 OPDEF(piand,  PTR_SIZE(LIR_and,    LIR_qiand) ,2)
 OPDEF(pior,PTR_SIZE(LIR_or,     LIR_qior), 2)
 OPDEF(pilsh,PTR_SIZE(LIR_lsh,    LIR_qilsh) ,2 )
 OPDEF(pcall, PTR_SIZE(LIR_icall,  LIR_qcall), 0)
+OPDEF(iaddp,      LIR_addp, 2)
