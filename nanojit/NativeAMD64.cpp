@@ -68,6 +68,34 @@ tracing
 - nFragExit
 
 */ 
+#define JMP32 0xe9  
+#define IMM32(i)	\
+	_nIns -= 4;		\
+	*((int32_t*)_nIns) = (int32_t)(i)
+
+#define IMM64(i)	\
+	_nIns -= 8;		\
+	*((int64_t*)_nIns) = (int64_t)(i)
+
+// this should only be used when you can guarantee there is enough room on the page
+#define JMP_long_nochk_offset(o) do {\
+		verbose_only( NIns* next = _nIns; (void)next; ) \
+ 		IMM64((o)); \
+ 		*(--_nIns) = JMP64; \
+        printf("SSS test... jmp %p + %p = %p: nins = %p\n",(intptr_t)next, o, (next +o), _nIns); \
+		asm_output("jmp %p",(next+(o))); } while(0)
+
+
+#define JMP_long(t) do { \
+	underrunProtect(9);	\
+	intptr_t tt = (intptr_t)t - (intptr_t)_nIns;	\
+    printf("SSS test... t = %p tt = %p nIns = %p\n", t,tt,_nIns); \
+	JMP_long_nochk_offset(tt);	\
+    verbose_only( verbose_outputf("        %p:",_nIns); ) \
+	} while(0)
+
+
+
 
 namespace nanojit
 {
@@ -165,11 +193,25 @@ namespace nanojit
         }
         *s = 0;
         asm_output("%s", b);
+        printf("SSS test ... dis = %s\n",b);
     }
     #endif
-
+    
+    void Assembler::emit_nocheck(uint64_t op) {
+        int len = oplen(op);
+        printf("SSS test... op = %lx, len = %d\n",op, len);
+        // we will only move nIns by -len bytes, but we write 8
+        // bytes.  so need to protect 8 so we dont stomp the page
+        // header or the end of the preceding page (might segf)
+        ((int64_t*)_nIns)[-1] = op;
+        _nIns -= len; // move pointer by length encoded in opcode
+        _nvprof("x64-bytes", len);
+        verbose_only( if (_verbose) dis(_nIns, len); )
+    }
+    
     void Assembler::emit(uint64_t op) {
         int len = oplen(op);
+        printf("SSS test... op = %lx, len = %d\n",op, len);
         // we will only move nIns by -len bytes, but we write 8
         // bytes.  so need to protect 8 so we dont stomp the page
         // header or the end of the preceding page (might segf)
@@ -244,6 +286,21 @@ namespace nanojit
     void Assembler::MR(Register d, Register s) {
         NanoAssert(IsGpReg(d) && IsGpReg(s));
         emitrr(X64_movqr, d, s);
+    }
+
+    void Assembler::JMP_nocheck(NIns *target) {
+        if (!target || isS32(target - _nIns)) {
+            //underrunProtect(16); // must do this before calculating offset
+            if (target && isS8(target - _nIns)) {
+                printf("SSS test... S8\n");
+                //emit8(X64_jmp8, target - _nIns);
+                emit_nocheck(X64_jmp8 | uint64_t(target - _nIns)<<56);
+            } else {
+                printf("SSS test... no target, no S8 target = %x\n", target);
+                //emit32(X64_jmp, target ? target - _nIns : 0);
+                emit_nocheck(X64_jmp | uint64_t(uint32_t(target ? target - _nIns : 0))<<32);
+            }
+        } 
     }
 
     void Assembler::JMP(NIns *target) {
@@ -1156,9 +1213,27 @@ namespace nanojit
         }
     }
 
-    void Assembler::asm_loop(LIns*, NInsList&) {
+    /*void Assembler::asm_loop(LIns*, NInsList&) {
         TODO(asm_loop);
-    }
+    }*/
+
+    void Assembler::asm_loop(LInsp ins, NInsList& loopJumps)
+	{
+		(void)ins;
+        JMP(0); // jump to SOT    
+        pageValidate();
+        //JMP_long_placeholder(); // jump to SOT    
+        //verbose_only( if (_verbose && _outputCache) { _outputCache->removeLast(); outputf("         jmp   SOT"); } );
+        
+        loopJumps.add(_nIns);
+
+        //assignSavedRegs();
+        assignSavedParams();
+
+        // restore first parameter, the only one we use
+        //LInsp state = _thisfrag->lirbuf->state;
+        //findSpecificRegFor(state, argRegs[state->imm8()]);
+	}
 
     NIns* Assembler::genPrologue() {
         // activation frame is 4 bytes per entry even on 64bit machines
@@ -1269,6 +1344,7 @@ namespace nanojit
         NIns *pc = _nIns;
         Page *p = (Page*)pageTop(pc-1);
         NIns *top = (NIns*) &p->code[0];
+        intptr_t u = bytes + sizeof(PageHeader)/sizeof(NIns) + 16;
         verbose_only(outputf("underrunProtect top %p:", top);)
         //sss NIns *top = _inExit ? this->exitStart : this->codeStart;
 
@@ -1279,10 +1355,12 @@ namespace nanojit
         // the next instruction
 
         NanoAssert(pedanticTop >= top);
-        if (pc - bytes < pedanticTop) {
+        printf("SSS test.. -------------------------- PEDANTIC ------------------ \n");
+//        if (pc - u < pedanticTop) {
+        if (!samepage((intptr_t)_nIns-u,_nIns - 1)){
             // no page break required, but insert a far branch anyway just to be difficult
             const int br_size = 8; // opcode + 32bit addr
-            if (pc - bytes - br_size < top) {
+            if (pc - u - br_size < top) {
                 // really do need a page break
                 verbose_only(if (_verbose) outputf("newpage %p:", pc);)
 			    _nIns = pageAlloc(_inExit);
@@ -1291,10 +1369,13 @@ namespace nanojit
             // we're pedantic, but not *that* pedantic.
             pedanticTop = _nIns - br_size;
             JMP(pc);
-            pedanticTop = _nIns - bytes;
+            pedanticTop = _nIns - u;
         }
     #else
-        if (pc - bytes < top) {
+        printf("SSS test.. -------------------------- NON PEDANTIC ------------------ pc = %lx, bytes = %d, top = %lx\n", pc, bytes,top);
+       // if (pc - u < top) {
+        if (!samepage((intptr_t)_nIns-u,(intptr_t)_nIns)){
+            printf("SSS test...new page \n");
             // We are done with the current page.  Tell Valgrind that new code
             // has been generated.
             VALGRIND_DISCARD_TRANSLATIONS(pageTop(p), NJ_PAGE_SIZE);
@@ -1303,7 +1384,7 @@ namespace nanojit
             //pageAlloc();
             // this jump will call underrunProtect again, but since we're on a new
             // page, nothing will happen.
-            JMP(pc);
+            JMP_nocheck(pc);
         }
     #endif
     }
@@ -1318,7 +1399,7 @@ namespace nanojit
             IF_PEDANTIC( pedanticTop = _nIns; )
         }
         if (!_nExitIns) {
-			_nIns = pageAlloc(true);
+			_nExitIns = pageAlloc(true);
         }
     }
 
