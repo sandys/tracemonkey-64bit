@@ -211,7 +211,7 @@ namespace nanojit
     
     void Assembler::emit(uint64_t op) {
         int len = oplen(op);
-        printf("SSS test... op = %lx, len = %d\n",op, len);
+        printf("SSS test 1... op = %lx, len = %d\n",op, len);
         // we will only move nIns by -len bytes, but we write 8
         // bytes.  so need to protect 8 so we dont stomp the page
         // header or the end of the preceding page (might segf)
@@ -1229,7 +1229,11 @@ namespace nanojit
 
         //assignSavedRegs();
         assignSavedParams();
-
+        
+        // If the target we are looping to is in a different fragment, we have to restore
+		// SP since we will target fragEntry and not loopEntry.
+	    if (ins->record()->exit->target != _thisfrag)
+            MR(RSP, RBP);
         // restore first parameter, the only one we use
         //LInsp state = _thisfrag->lirbuf->state;
         //findSpecificRegFor(state, argRegs[state->imm8()]);
@@ -1331,8 +1335,29 @@ namespace nanojit
     #endif
     }
 
-    void Assembler::nFragExit(LIns*) {
-        TODO(nFragExit);
+    void Assembler::nFragExit(LIns* guard) {
+        SideExit* exit = guard->record()->exit;
+        Fragment *frag = exit->target;
+        GuardRecord *lr;
+        if (frag && frag->fragEntry)
+            {
+                JMP(frag->fragEntry);
+                lr = 0;
+            }
+        else
+            {
+                // target doesn't exit yet.  emit jump to epilog, and set up to patch later.
+                lr = guard->record();
+                JMP(_epilogue);
+                lr->jmp = _nIns;
+            }
+
+        // return value is GuardRecord*
+        Register r = prepResultReg(guard, 1<<RAX);
+        printf("SSS test nFragExit... lr = %lx\n",lr);
+        emit_quad(r, (uint64_t)lr);
+        //findSpecificRegFor(lr, RAX);
+        
     }
 
     void Assembler::nInit(AvmCore*)
