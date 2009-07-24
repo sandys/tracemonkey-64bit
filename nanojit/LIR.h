@@ -401,7 +401,7 @@ struct CallInfo
 		
 		inline void* constvalp() const
 		{
-        #ifdef AVMPLUS_64BIT
+        #ifdef NANOJIT_64BIT 
 		    return (void*)constvalq();
 		#else
 		    return (void*)constval();
