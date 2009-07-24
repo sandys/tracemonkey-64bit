@@ -563,6 +563,7 @@ const uint8_t operandCount[] = {
 	bool LIns::isQuad() const {
 		LOpcode op = u.code;
 		#ifdef NANOJIT_64BIT
+			//return !(op >= LIR_file && op <= LIR_quge) && ((op & LIR64) != 0 || op == LIR_param);
 			return !(op >= LIR_qeq && op <= LIR_quge) && ((op & LIR64) != 0 || op == LIR_param);
 		#else
 			return (op & LIR64) != 0;
@@ -1338,7 +1339,9 @@ const uint8_t operandCount[] = {
 		// must acount for arg count (argc) and full size of instruction (insSz, not words)
 		LInsp from = _buf->next()+argc+insSz;
 		for (int32_t i=0; i < argc; i++)
+        {
 			makeReachable(args[i], from);
+        }
 
 		// skip 'words' needed for call parameters
 		LirCallIns *l = (LirCallIns*) (_buf->next()+words);
@@ -1808,7 +1811,8 @@ const uint8_t operandCount[] = {
 		return true;
 	}
 
-	LInsp LInsHashSet::findcall(const CallInfo *ci, uint32_t argc, LInsp args[], uint32_t &i)
+	//sss this is the cse hash value
+    LInsp LInsHashSet::findcall(const CallInfo *ci, uint32_t argc, LInsp args[], uint32_t &i)
 	{
 		uint32_t cap = m_cap;
 		const LInsp *list = m_list;
@@ -2326,6 +2330,7 @@ const uint8_t operandCount[] = {
 	LIns* CseFilter::ins2(LOpcode v, LInsp a, LInsp b)
 	{
 		if (isCse(v)) {
+            printf("SSS test... opcode = %d count = %d\n", v, operandCount[v]);
 			NanoAssert(operandCount[v]==2);
 			uint32_t k;
 			LInsp found = exprs.find2(v, a, b, k);
@@ -2357,6 +2362,7 @@ const uint8_t operandCount[] = {
 	{
 		if (isCse(v)) {
 			// conditional guard
+            printf("operand = %d count = %d\n", v, operandCount[v]);
 			NanoAssert(operandCount[v]==1);
 			uint32_t k;
 			LInsp found = exprs.find1(v, c, k);
