@@ -105,11 +105,13 @@ struct JSTraceableNative {
 #define  _JS_I32_RETSIZE    nanojit::ARGSIZE_LO
 #define  _JS_F64_ARGSIZE    nanojit::ARGSIZE_F
 #define  _JS_F64_RETSIZE    nanojit::ARGSIZE_F
-#define  _JS_PTR_ARGSIZE    nanojit::ARGSIZE_LO
-#if defined AVMPLUS_64BIT
-# define _JS_PTR_RETSIZE    nanojit::ARGSIZE_Q
+#if defined NANOJIT_64BIT
+// sss #if defined AVMPLUS_64BIT
+#define  _JS_PTR_ARGSIZE    nanojit::ARGSIZE_F
+# define _JS_PTR_RETSIZE    nanojit::ARGSIZE_F
 #else
 # define _JS_PTR_RETSIZE    nanojit::ARGSIZE_LO
+#define  _JS_PTR_ARGSIZE    nanojit::ARGSIZE_LO
 #endif
 
 /*
